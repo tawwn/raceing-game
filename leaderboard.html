@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard — APEX RACING</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.content {
+  align-items:center; justify-content:center;
+  background: radial-gradient(ellipse at 50% 0%, #0d1a22 0%, var(--bg) 60%);
+  padding:24px;
+  overflow-y:auto;
+}
+
+/* ── USERNAME ENTRY ── */
+#username-section {
+  width:100%; max-width:520px;
+  display:flex; flex-direction:column; align-items:center;
+  animation:fadeUp .4s ease;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+.result-banner {
+  text-align:center; margin-bottom:32px; width:100%;
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:14px; padding:28px 24px;
+}
+.result-car-img {
+  height:100px; object-fit:contain;
+  filter:drop-shadow(0 4px 20px rgba(0,0,0,.6));
+  margin-bottom:12px;
+}
+.result-badge {
+  font-family:'Barlow Condensed',sans-serif; font-size:11px;
+  font-weight:700; letter-spacing:3px; margin-bottom:8px;
+}
+.result-title {
+  font-family:'Barlow Condensed',sans-serif; font-size:72px;
+  font-weight:900; letter-spacing:4px; line-height:1;
+}
+.result-sub {
+  font-family:'Barlow Condensed',sans-serif; font-size:18px;
+  font-weight:700; letter-spacing:4px; margin-top:4px;
+}
+.result-time-display {
+  font-family:'Barlow Condensed',sans-serif; font-size:28px;
+  font-weight:700; color:var(--muted); margin-top:10px;
+}
+.result-time-display span { color:var(--text); }
+.win-col  { color:var(--accent); }
+.lose-col { color:var(--red); }
+
+.username-box {
+  width:100%; background:var(--s2); border:1px solid var(--border);
+  border-radius:14px; padding:28px 28px 24px; margin-bottom:16px;
+}
+.username-box h3 {
+  font-family:'Barlow Condensed',sans-serif; font-size:11px;
+  font-weight:700; letter-spacing:3px; color:var(--muted); margin-bottom:16px;
+}
+.input-row { display:flex; gap:10px; }
+.name-input {
+  flex:1; background:var(--s3); border:1px solid var(--border2);
+  border-radius:8px; padding:14px 18px; color:var(--text);
+  font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:600;
+  letter-spacing:1px; outline:none; transition:border-color .2s;
+}
+.name-input:focus { border-color:var(--accent); }
+.name-input::placeholder { color:var(--muted); }
+
+/* ── LEADERBOARD ── */
+#leaderboard-section {
+  width:100%; max-width:760px;
+  animation:fadeUp .4s ease;
+}
+.lb-card {
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:16px; overflow:hidden;
+  box-shadow:0 32px 64px rgba(0,0,0,.5);
+}
+
+.lb-my-result {
+  padding:22px 32px; display:flex; align-items:center; gap:20px;
+  background:var(--s2); border-bottom:1px solid var(--border);
+}
+.lb-my-car-img { height:60px; object-fit:contain; filter:drop-shadow(0 2px 12px rgba(0,0,0,.5)); }
+.lb-my-info { flex:1; }
+.lb-my-name { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:700; }
+.lb-my-detail { font-size:12px; color:var(--muted); margin-top:3px; }
+.lb-my-rank { font-family:'Barlow Condensed',sans-serif; font-size:44px; font-weight:900; }
+.lb-my-rank.p1 { color:var(--gold); }
+.lb-my-rank.p2 { color:var(--silver); }
+.lb-my-rank.p3 { color:var(--bronze); }
+
+.lb-tabs { display:flex; border-bottom:1px solid var(--border); }
+.lb-tab {
+  flex:1; padding:15px; text-align:center;
+  font-family:'Barlow Condensed',sans-serif; font-size:12px;
+  font-weight:700; letter-spacing:2px; color:var(--muted);
+  cursor:pointer; border-bottom:2px solid transparent;
+  transition:all .2s; background:none; border-left:none; border-right:none; border-top:none;
+}
+.lb-tab.active { color:var(--text); border-bottom-color:var(--accent); background:rgba(0,212,255,.04); }
+
+.lb-thead {
+  display:grid; grid-template-columns:64px 1fr 160px 120px;
+  padding:10px 24px; background:var(--s2); border-bottom:1px solid var(--border);
+  font-family:'Barlow Condensed',sans-serif; font-size:10px;
+  font-weight:700; letter-spacing:2px; color:var(--muted);
+}
+.lb-rows { max-height:300px; overflow-y:auto; }
+.lb-row {
+  display:grid; grid-template-columns:64px 1fr 160px 120px;
+  padding:14px 24px; align-items:center;
+  border-bottom:1px solid rgba(37,37,40,.7);
+  transition:background .15s;
+}
+.lb-row:hover  { background:rgba(255,255,255,.02); }
+.lb-row.me     { background:rgba(0,212,255,.05); }
+.lb-row.rank1  { background:rgba(255,200,61,.04); }
+
+.rank-num { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; }
+.rank-num.p1 { color:var(--gold); }
+.rank-num.p2 { color:var(--silver); }
+.rank-num.p3 { color:var(--bronze); }
+
+.player-cell { display:flex; align-items:center; gap:10px; }
+.player-avatar {
+  width:30px; height:30px; border-radius:50%;
+  background:var(--s3); border:1px solid var(--border2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; flex-shrink:0;
+}
+.player-name { font-size:14px; font-weight:500; }
+.car-col  { font-size:12px; color:var(--muted); }
+.time-col { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700; }
+
+.lb-footer {
+  padding:18px 24px; display:flex; gap:10px;
+  background:var(--s2); border-top:1px solid var(--border);
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <a class="logo" href="index.html"><em>APEX</em> RACING</a>
+    <div class="steps">
+      <div class="step-item done">01 — SELECT CAR</div>
+      <div class="step-sep"></div>
+      <div class="step-item done">02 — CIRCUIT</div>
+      <div class="step-sep"></div>
+      <div class="step-item done">03 — RACE</div>
+      <div class="step-sep"></div>
+      <div class="step-item active">04 — RESULTS</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- USERNAME ENTRY (shown first) -->
+    <div id="username-section">
+
+      <div class="result-banner" id="result-banner">
+        <img id="result-car-img" class="result-car-img" src="" alt="">
+        <div class="result-badge" id="result-badge">RACE COMPLETE</div>
+        <div class="result-title" id="result-title">WIN!</div>
+        <div class="result-sub"   id="result-sub">1ST PLACE</div>
+        <div class="result-time-display">Time: <span id="result-time">—</span></div>
+      </div>
+
+      <div class="username-box">
+        <h3>ENTER YOUR NAME TO SAVE RESULT</h3>
+        <div class="input-row">
+          <input type="text" class="name-input" id="name-input" placeholder="YOUR NAME" maxlength="18" autofocus>
+          <button class="btn btn-primary" onclick="submitName()">SAVE →</button>
+        </div>
+      </div>
+
+      <button class="btn btn-ghost" onclick="skipToLb()" style="width:100%;padding:13px;">SKIP — VIEW LEADERBOARD</button>
+    </div>
+
+    <!-- LEADERBOARD (shown after username) -->
+    <div id="leaderboard-section" style="display:none;">
+      <div class="lb-card">
+
+        <div class="lb-my-result">
+          <img id="lb-car-img" class="lb-my-car-img" src="" alt="">
+          <div class="lb-my-info">
+            <div class="lb-my-name" id="lb-my-name">—</div>
+            <div class="lb-my-detail" id="lb-my-detail">—</div>
+          </div>
+          <div class="lb-my-rank" id="lb-my-rank">#1</div>
+        </div>
+
+        <div class="lb-tabs">
+          <button class="lb-tab active" id="tab-round" onclick="switchTab('round')">THIS ROUND</button>
+          <button class="lb-tab"        id="tab-all"   onclick="switchTab('all')">ALL TIME</button>
+        </div>
+
+        <div class="lb-thead">
+          <span>POS.</span><span>PLAYER</span><span>CAR</span><span>TIME</span>
+        </div>
+        <div class="lb-rows" id="lb-rows"></div>
+
+        <div class="lb-footer">
+          <button class="btn btn-ghost"    onclick="window.location.href='race.html'">RACE AGAIN</button>
+          <button class="btn btn-ghost"    onclick="window.location.href='circuit.html'">CHANGE CIRCUIT</button>
+          <button class="btn btn-primary"  onclick="window.location.href='index.html'" style="margin-left:auto;">NEW GAME</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+const result  = State.get('result');
+const CAR     = result ? (CARS.find(c => c.id === result.car?.id) || CARS[0]) : CARS[0];
+const CIRCUIT = result ? (CIRCUITS.find(c => c.id === result.circuit?.id) || CIRCUITS[0]) : CIRCUITS[0];
+let myEntry   = null;
+let activeTab = 'round';
+let roundEntries = [];
+
+// Load alltime from localStorage
+function loadAllTime() {
+  try { return JSON.parse(localStorage.getItem('apex_alltime') || '[]'); } catch(e) { return []; }
+}
+function saveAllTime(arr) {
+  try { localStorage.setItem('apex_alltime', JSON.stringify(arr.slice(0, 100))); } catch(e) {}
+}
+
+// ─── INIT RESULT BANNER ───
+function initBanner() {
+  if (!result) { skipToLb(); return; }
+  const won = result.won;
+  document.getElementById('result-car-img').src = CAR_IMAGES[CAR.id];
+  document.getElementById('result-badge').textContent  = won ? '🏆 RACE COMPLETE' : 'RACE OVER';
+  document.getElementById('result-badge').style.color  = won ? 'var(--accent)' : 'var(--red)';
+  document.getElementById('result-title').textContent  = won ? 'WIN!' : 'LOSES!';
+  document.getElementById('result-title').className    = 'result-title ' + (won ? 'win-col' : 'lose-col');
+  document.getElementById('result-sub').textContent    = won ? result.pos + (result.pos===1?'ST':result.pos===2?'ND':'TH') + ' PLACE' : 'TIME OUT';
+  document.getElementById('result-sub').className      = 'result-sub '  + (won ? 'win-col' : 'lose-col');
+  document.getElementById('result-time').textContent   = result.timeStr || '—';
+}
+
+// ─── SUBMIT NAME ───
+function submitName() {
+  const name = document.getElementById('name-input').value.trim();
+  if (!name) { document.getElementById('name-input').focus(); return; }
+
+  if (result) {
+    myEntry = {
+      name, won: result.won, timeMs: result.timeMs,
+      timeStr: result.timeStr, pos: result.pos,
+      carId: CAR.id, carName: CAR.name + ' ' + CAR.model,
+      circuitId: CIRCUIT.id, circuitName: CIRCUIT.name,
+      ts: Date.now()
+    };
+    roundEntries.push(myEntry);
+
+    // Also save to alltime
+    const allTime = loadAllTime();
+    allTime.push(myEntry);
+    allTime.sort((a,b) => a.timeMs - b.timeMs);
+    saveAllTime(allTime);
+  }
+
+  showLeaderboard(name);
+}
+
+function skipToLb() { showLeaderboard(null); }
+
+// ─── SHOW LEADERBOARD ───
+function showLeaderboard(name) {
+  document.getElementById('username-section').style.display  = 'none';
+  document.getElementById('leaderboard-section').style.display = 'block';
+
+  if (result) {
+    document.getElementById('lb-car-img').src = CAR_IMAGES[CAR.id];
+    document.getElementById('lb-my-name').textContent   = name || '—';
+    document.getElementById('lb-my-detail').textContent = CAR.name + ' ' + CAR.model + '  ·  ' + CIRCUIT.name + '  ·  ' + (result.timeStr || '—');
+  }
+
+  renderLeaderboard();
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tab-round').classList.toggle('active', tab==='round');
+  document.getElementById('tab-all').classList.toggle('active', tab==='all');
+  renderLeaderboard();
+}
+
+function renderLeaderboard() {
+  let data;
+  if (activeTab === 'round') {
+    data = [...roundEntries].sort((a,b)=>a.timeMs-b.timeMs);
+  } else {
+    data = loadAllTime().sort((a,b)=>a.timeMs-b.timeMs);
+  }
+
+  // Rank display
+  const myRank = myEntry ? data.findIndex(e => e.ts === myEntry.ts) + 1 : 0;
+  const rankEl = document.getElementById('lb-my-rank');
+  rankEl.textContent = myRank > 0 ? '#'+myRank : '#—';
+  rankEl.className   = 'lb-my-rank' + (myRank===1?' p1':myRank===2?' p2':myRank===3?' p3':'');
+
+  const rows = document.getElementById('lb-rows');
+  rows.innerHTML = '';
+
+  if (data.length === 0) {
+    rows.innerHTML = '<div style="padding:32px;text-align:center;color:var(--muted);font-family:\'Barlow Condensed\',sans-serif;letter-spacing:2px;font-size:13px;">NO RESULTS YET</div>';
+    return;
+  }
+
+  data.slice(0, 20).forEach((e, i) => {
+    const rank = i+1;
+    const isMe = myEntry && e.ts === myEntry.ts;
+    const pClass = rank===1?'p1':rank===2?'p2':rank===3?'p3':'';
+    const row = document.createElement('div');
+    row.className = 'lb-row' + (isMe?' me':'') + (rank===1?' rank1':'');
+    row.innerHTML = `
+      <div class="rank-num ${pClass}">${rank}</div>
+      <div class="player-cell">
+        <div class="player-avatar">👤</div>
+        <div class="player-name">${e.name}</div>
+      </div>
+      <div class="car-col">${e.carName || '—'}</div>
+      <div class="time-col">${e.timeStr || '—'}</div>
+    `;
+    rows.appendChild(row);
+  });
+}
+
+// Enter key submit
+document.addEventListener('keydown', e => {
+  if (e.code==='Enter' && document.getElementById('username-section').style.display!=='none') submitName();
+});
+
+initBanner();
+</script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Select Circuit — APEX RACING</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.content { background:var(--bg); }
+
+/* ── LEFT: circuit list ── */
+.left-panel {
+  width:320px; flex-shrink:0;
+  background:var(--s1); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; padding:32px 24px; gap:10px;
+  overflow-y:auto;
+}
+.panel-heading {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px; font-weight:700; letter-spacing:3px;
+  color:var(--muted); margin-bottom:8px; padding:0 4px;
+}
+
+.circuit-item {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:10px; padding:16px 18px;
+  cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:14px;
+}
+.circuit-item:hover { border-color:var(--dim); background:var(--s3); }
+.circuit-item.selected {
+  border-color:var(--accent); background:var(--s2);
+  box-shadow:0 0 0 1px var(--accent), 0 4px 20px rgba(0,212,255,.12);
+}
+.circuit-flag { font-size:24px; flex-shrink:0; }
+.circuit-info { flex:1; min-width:0; }
+.circuit-name {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:16px; font-weight:700; letter-spacing:1px;
+}
+.circuit-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+
+/* ── RIGHT: preview ── */
+.right-panel {
+  flex:1; padding:40px 48px; display:flex; flex-direction:column; gap:0;
+  background: linear-gradient(160deg, var(--bg) 0%, var(--s1) 100%);
+  overflow-y:auto;
+}
+
+.section-label { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:3px; color:var(--muted); margin-bottom:6px; }
+.section-title { font-family:'Barlow Condensed',sans-serif; font-size:40px; font-weight:900; letter-spacing:3px; margin-bottom:32px; line-height:1; }
+
+/* track map */
+.track-map-wrap {
+  flex:1; min-height:0; background:var(--s2);
+  border:1px solid var(--border); border-radius:14px;
+  position:relative; overflow:hidden; margin-bottom:24px;
+  min-height:220px; max-height:300px;
+}
+.track-label {
+  position:absolute; top:16px; right:20px;
+  font-family:'Barlow Condensed',sans-serif; font-size:13px;
+  font-weight:700; letter-spacing:2px; color:var(--muted);
+}
+.track-map-svg {
+  width:100%; height:100%; display:block;
+}
+.track-path {
+  stroke:var(--text); stroke-width:8;
+  fill:none; stroke-linecap:round; stroke-linejoin:round;
+  filter:drop-shadow(0 0 6px rgba(255,255,255,.2));
+}
+.track-animated {
+  stroke:var(--accent); stroke-width:3; fill:none;
+  stroke-linecap:round; stroke-dasharray:40 9999;
+  stroke-dashoffset:0; animation:driveAround 3s linear infinite;
+  filter:drop-shadow(0 0 4px var(--accent));
+}
+@keyframes driveAround { to { stroke-dashoffset:-600; } }
+
+/* circuit stats */
+.circuit-stats {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:28px;
+}
+.cstat {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:10px; padding:16px 18px;
+}
+.cstat-label {
+  font-family:'Barlow Condensed',sans-serif; font-size:9px;
+  font-weight:700; letter-spacing:2px; color:var(--muted); margin-bottom:6px;
+}
+.cstat-value {
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:26px; font-weight:900; letter-spacing:1px;
+}
+
+/* difficulty */
+.difficulty-wrap { display:flex; align-items:center; gap:16px; margin-bottom:28px; }
+.diff-label { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; letter-spacing:2px; color:var(--muted); }
+.diff-pips { display:flex; gap:5px; }
+.diff-pip { width:28px; height:5px; border-radius:3px; background:var(--border2); transition:background .3s; }
+.diff-pip.on { background:var(--accent); }
+
+/* selected car reminder */
+.selected-car-bar {
+  display:flex; align-items:center; gap:16px;
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:10px; padding:14px 18px; margin-bottom:24px;
+}
+.selected-car-thumb {
+  width:80px; height:44px; object-fit:contain;
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,.5));
+}
+.selected-car-text { flex:1; }
+.selected-car-name { font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; }
+.selected-car-sub  { font-size:11px; color:var(--muted); margin-top:2px; }
+.change-car-btn {
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:1px; color:var(--muted); background:none; border:1px solid var(--border2);
+  border-radius:6px; padding:7px 14px; cursor:pointer; transition:all .2s;
+}
+.change-car-btn:hover { color:var(--text); border-color:var(--dim); }
+
+/* buttons row */
+.actions { display:flex; gap:12px; }
+.btn-start { flex:1; padding:16px; font-size:15px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <a class="logo" href="index.html"><em>APEX</em> RACING</a>
+    <div class="steps">
+      <div class="step-item done">01 — SELECT CAR</div>
+      <div class="step-sep"></div>
+      <div class="step-item active">02 — CIRCUIT</div>
+      <div class="step-sep"></div>
+      <div class="step-item">03 — RACE</div>
+      <div class="step-sep"></div>
+      <div class="step-item">04 — RESULTS</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- LEFT: list -->
+    <div class="left-panel">
+      <div class="panel-heading">CIRCUITS</div>
+      <div id="circuit-list"></div>
+    </div>
+
+    <!-- RIGHT: preview -->
+    <div class="right-panel">
+      <div class="section-label">STEP 02</div>
+      <div class="section-title">SELECT<br>CIRCUIT</div>
+
+      <!-- Selected car reminder -->
+      <div class="selected-car-bar">
+        <img id="car-thumb" class="selected-car-thumb" src="" alt="">
+        <div class="selected-car-text">
+          <div class="selected-car-name" id="car-thumb-name">Ferrari LaFerrari</div>
+          <div class="selected-car-sub">Selected vehicle</div>
+        </div>
+        <button class="change-car-btn" onclick="window.location.href='index.html'">CHANGE</button>
+      </div>
+
+      <!-- Track map -->
+      <div class="track-map-wrap">
+        <div class="track-label" id="track-label">SILVERSTONE</div>
+        <svg class="track-map-svg" id="track-svg" viewBox="0 0 460 200"></svg>
+      </div>
+
+      <!-- Stats -->
+      <div class="circuit-stats">
+        <div class="cstat"><div class="cstat-label">TRACK LENGTH</div><div class="cstat-value" id="c-length">5.89 km</div></div>
+        <div class="cstat"><div class="cstat-label">TOTAL TURNS</div><div class="cstat-value" id="c-turns">18</div></div>
+        <div class="cstat"><div class="cstat-label">LAP RECORD</div><div class="cstat-value" id="c-record">1:27.097</div></div>
+      </div>
+
+      <!-- Difficulty -->
+      <div class="difficulty-wrap">
+        <div class="diff-label">DIFFICULTY</div>
+        <div class="diff-pips" id="diff-pips">
+          <div class="diff-pip on"></div><div class="diff-pip on"></div>
+          <div class="diff-pip on"></div><div class="diff-pip"></div><div class="diff-pip"></div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn btn-ghost" onclick="window.location.href='index.html'">← BACK</button>
+        <button class="btn btn-primary btn-start" id="btn-start" onclick="startRace()">START RACE →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+let activeCircuit = CIRCUITS[0];
+
+function buildList() {
+  const list = document.getElementById('circuit-list');
+  list.innerHTML = '';
+  CIRCUITS.forEach((c, i) => {
+    const item = document.createElement('div');
+    item.className = 'circuit-item' + (i === 0 ? ' selected' : '');
+    item.dataset.id = c.id;
+    item.innerHTML = `
+      <div class="circuit-flag">${c.flag}</div>
+      <div class="circuit-info">
+        <div class="circuit-name">${c.name}</div>
+        <div class="circuit-meta">${c.country} · ${c.length} · ${c.turns} turns</div>
+      </div>
+    `;
+    item.onclick = () => setCircuit(c, item);
+    list.appendChild(item);
+  });
+  updatePreview(CIRCUITS[0]);
+}
+
+function setCircuit(c, item) {
+  document.querySelectorAll('.circuit-item').forEach(el => el.classList.remove('selected'));
+  item.classList.add('selected');
+  activeCircuit = c;
+  updatePreview(c);
+}
+
+function updatePreview(c) {
+  document.getElementById('track-label').textContent = c.name.toUpperCase();
+  document.getElementById('c-length').textContent = c.length;
+  document.getElementById('c-turns').textContent = c.turns;
+  document.getElementById('c-record').textContent = c.record;
+
+  // Draw SVG
+  const svg = document.getElementById('track-svg');
+  svg.innerHTML = `
+    <rect width="460" height="200" fill="#0f0f14" rx="10"/>
+    <path class="track-path" d="${c.svg}"/>
+    <path class="track-animated" d="${c.svg}"/>
+  `;
+
+  // Difficulty pips
+  const level = Math.round(c.difficulty * 5);
+  document.querySelectorAll('.diff-pip').forEach((p, i) => {
+    p.classList.toggle('on', i < level);
+  });
+}
+
+// Load selected car
+function loadCar() {
+  const car = State.get('car') || CARS[0];
+  const found = CARS.find(c => c.id === car.id) || CARS[0];
+  document.getElementById('car-thumb').src = CAR_IMAGES[found.id];
+  document.getElementById('car-thumb-name').textContent = found.name + ' ' + found.model;
+}
+
+function startRace() {
+  if (!State.get('car')) { window.location.href = 'index.html'; return; }
+  State.set('circuit', activeCircuit);
+  window.location.href = 'race.html';
+}
+
+buildList();
+loadCar();
+
+// Restore saved circuit
+const savedCircuit = State.get('circuit');
+if (savedCircuit) {
+  const c = CIRCUITS.find(x => x.id === savedCircuit.id);
+  if (c) {
+    activeCircuit = c;
+    updatePreview(c);
+    setTimeout(() => {
+      const item = document.querySelector(`[data-id="${c.id}"]`);
+      if (item) { document.querySelectorAll('.circuit-item').forEach(el => el.classList.remove('selected')); item.classList.add('selected'); }
+    }, 50);
+  }
+}
+</script>
+</body>
+</html>

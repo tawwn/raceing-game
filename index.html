@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Select Car — APEX RACING</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.content { background:var(--bg); overflow:hidden; }
+
+.left-panel {
+  width:55%; padding:40px 48px; display:flex; flex-direction:column;
+  background:linear-gradient(135deg,var(--s1) 0%,var(--bg) 100%);
+  border-right:1px solid var(--border); overflow-y:auto;
+}
+.section-label { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:3px; color:var(--muted); margin-bottom:6px; }
+.section-title { font-family:'Barlow Condensed',sans-serif; font-size:38px; font-weight:900; letter-spacing:3px; margin-bottom:28px; line-height:1; }
+
+.car-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.car-card {
+  background:var(--s2); border:1px solid var(--border); border-radius:12px;
+  padding:14px 10px 12px; cursor:pointer; transition:all .2s;
+  display:flex; flex-direction:column; align-items:center; position:relative; overflow:hidden;
+}
+.car-card:hover { border-color:var(--dim); background:var(--s3); transform:translateY(-2px); }
+.car-card.selected { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent),0 8px 32px rgba(0,212,255,.15); }
+.car-preview {
+  width:100%; height:80px; position:relative; margin-bottom:10px;
+  display:flex; align-items:center; justify-content:center;
+}
+#preview-canvas-wrap { width:100%; height:100%; }
+.car-thumb-canvas { width:100%; height:80px; border-radius:6px; background:#0a0a0d; }
+.car-brand { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:1px; color:var(--text); }
+.car-model-lbl { font-size:10px; color:var(--muted); margin-top:2px; }
+.sel-dot { position:absolute; top:8px; right:8px; width:18px; height:18px; border-radius:50%; background:var(--accent); display:none; align-items:center; justify-content:center; }
+.sel-dot svg { width:9px; height:9px; }
+.car-card.selected .sel-dot { display:flex; }
+.loading-car { width:100%; height:80px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:10px; font-family:'Barlow Condensed',sans-serif; letter-spacing:2px; background:#0a0a0d; border-radius:6px; }
+
+/* right panel */
+.right-panel { width:45%; padding:36px 36px 28px; display:flex; flex-direction:column; background:var(--s1); overflow-y:auto; }
+.detail-3d-view {
+  width:100%; height:220px; border-radius:14px; overflow:hidden;
+  background:linear-gradient(160deg,#0a0a10,#101018); border:1px solid var(--border);
+  margin-bottom:22px; position:relative; flex-shrink:0;
+}
+#main-preview { width:100%; height:100%; display:block; }
+.detail-name { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:3px; color:var(--muted); margin-bottom:3px; }
+.detail-model { font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:900; letter-spacing:1px; margin-bottom:20px; }
+.stats-section { display:flex; flex-direction:column; gap:11px; margin-bottom:20px; }
+.stat-row { display:flex; flex-direction:column; gap:5px; }
+.stat-head { display:flex; justify-content:space-between; font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; letter-spacing:1.5px; color:var(--muted); }
+.stat-val { color:var(--text); }
+.stat-track { height:3px; background:var(--border2); border-radius:2px; overflow:hidden; }
+.stat-fill { height:100%; background:var(--accent); border-radius:2px; transition:width .5s cubic-bezier(.4,0,.2,1); }
+.spec-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
+.spec-item { background:var(--s2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+.spec-label { font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; letter-spacing:2px; color:var(--muted); margin-bottom:4px; }
+.spec-value { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:700; }
+.btn-select { width:100%; padding:16px; font-size:15px; margin-top:auto; }
+.loading-overlay {
+  position:absolute; inset:0; background:rgba(10,10,16,.85);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+  font-family:'Barlow Condensed',sans-serif; font-size:11px; letter-spacing:3px; color:var(--muted);
+}
+.spinner { width:28px; height:28px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <a class="logo" href="index.html"><em>APEX</em> RACING</a>
+    <div class="steps">
+      <div class="step-item active">01 — SELECT CAR</div>
+      <div class="step-sep"></div>
+      <div class="step-item">02 — RACE</div>
+      <div class="step-sep"></div>
+      <div class="step-item">03 — RESULTS</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="left-panel">
+      <div class="section-label">STEP 01</div>
+      <div class="section-title">SELECT YOUR<br>VEHICLE</div>
+      <div class="car-grid" id="car-grid"></div>
+    </div>
+    <div class="right-panel">
+      <div class="detail-3d-view">
+        <canvas id="main-preview"></canvas>
+        <div class="loading-overlay" id="main-loading">
+          <div class="spinner"></div>
+          <span>LOADING MODEL</span>
+        </div>
+      </div>
+      <div class="detail-name" id="d-brand">FERRARI</div>
+      <div class="detail-model" id="d-model">LaFerrari</div>
+      <div class="stats-section">
+        <div class="stat-row"><div class="stat-head"><span>TOP SPEED</span><span class="stat-val" id="s-speed">350 km/h</span></div><div class="stat-track"><div class="stat-fill" id="sb-speed"></div></div></div>
+        <div class="stat-row"><div class="stat-head"><span>ACCELERATION</span><span class="stat-val" id="s-accel">2.9s</span></div><div class="stat-track"><div class="stat-fill" id="sb-accel"></div></div></div>
+        <div class="stat-row"><div class="stat-head"><span>HANDLING</span><span class="stat-val" id="s-handle">90/100</span></div><div class="stat-track"><div class="stat-fill" id="sb-handle"></div></div></div>
+        <div class="stat-row"><div class="stat-head"><span>BRAKING</span><span class="stat-val" id="s-brake">92/100</span></div><div class="stat-track"><div class="stat-fill" id="sb-brake"></div></div></div>
+      </div>
+      <div class="spec-grid">
+        <div class="spec-item"><div class="spec-label">WEIGHT</div><div class="spec-value" id="s-weight">1,255 kg</div></div>
+        <div class="spec-item"><div class="spec-label">POWER</div><div class="spec-value" id="s-power">950 hp</div></div>
+        <div class="spec-item"><div class="spec-label">0–100 KM/H</div><div class="spec-value" id="s-accel2">2.9 s</div></div>
+        <div class="spec-item"><div class="spec-label">TOP SPEED</div><div class="spec-value" id="s-speed2">350 km/h</div></div>
+      </div>
+      <button class="btn btn-primary btn-select" onclick="selectCar()">SELECT VEHICLE →</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+<script src="data.js"></script>
+<script>
+let activeCar = CARS[0];
+
+// ── Main 3D preview ──
+const mainCanvas = document.getElementById('main-preview');
+const mainRenderer = new THREE.WebGLRenderer({ canvas: mainCanvas, antialias: true, alpha: true });
+mainRenderer.setPixelRatio(window.devicePixelRatio);
+mainRenderer.shadowMap.enabled = true;
+mainRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+mainRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+mainRenderer.toneMappingExposure = 1.2;
+
+const mainScene  = new THREE.Scene();
+mainScene.background = new THREE.Color(0x080810);
+mainScene.fog = new THREE.FogExp2(0x080810, 0.04);
+
+const mainCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+mainCamera.position.set(4, 2, 6);
+
+const mainControls = new THREE.OrbitControls(mainCamera, mainCanvas);
+mainControls.enableDamping = true;
+mainControls.dampingFactor = 0.08;
+mainControls.enablePan = false;
+mainControls.minDistance = 2;
+mainControls.maxDistance = 12;
+mainControls.autoRotate = true;
+mainControls.autoRotateSpeed = 1.2;
+
+// Lights
+const ambLight = new THREE.AmbientLight(0xffffff, 0.4);
+mainScene.add(ambLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+dirLight.position.set(5, 8, 5);
+dirLight.castShadow = true;
+mainScene.add(dirLight);
+const rimLight = new THREE.DirectionalLight(0x4488ff, 1.2);
+rimLight.position.set(-5, 3, -5);
+mainScene.add(rimLight);
+const fillLight = new THREE.DirectionalLight(0xffeedd, 0.8);
+fillLight.position.set(0, -2, 5);
+mainScene.add(fillLight);
+
+// Ground reflection plane
+const groundGeo = new THREE.PlaneGeometry(30, 30);
+const groundMat = new THREE.MeshStandardMaterial({ color:0x101018, roughness:0.3, metalness:0.8 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+ground.position.y = -0.01;
+ground.receiveShadow = true;
+mainScene.add(ground);
+
+function resizeMain() {
+  const w = mainCanvas.parentElement.clientWidth;
+  const h = mainCanvas.parentElement.clientHeight;
+  mainRenderer.setSize(w, h);
+  mainCamera.aspect = w / h;
+  mainCamera.updateProjectionMatrix();
+}
+resizeMain();
+window.addEventListener('resize', resizeMain);
+
+let currentMesh = null;
+const loader = new THREE.GLTFLoader();
+
+function loadMainCar(car) {
+  document.getElementById('main-loading').style.display = 'flex';
+  if (currentMesh) { mainScene.remove(currentMesh); currentMesh = null; }
+
+  loader.load(car.file, gltf => {
+    const model = gltf.scene;
+
+    // Auto-scale to fit nicely
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 3.5 / maxDim;
+    model.scale.setScalar(scale);
+
+    // Center it
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    model.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+
+    model.traverse(child => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    // Face forward
+    model.rotation.y = Math.PI;
+
+    mainScene.add(model);
+    currentMesh = model;
+    document.getElementById('main-loading').style.display = 'none';
+
+    // Reset camera
+    mainCamera.position.set(4, 1.5, 5);
+    mainControls.target.set(0, 0.8, 0);
+    mainControls.update();
+  }, undefined, err => {
+    console.error(err);
+    document.getElementById('main-loading').style.display = 'none';
+  });
+}
+
+function animateMain() {
+  requestAnimationFrame(animateMain);
+  mainControls.update();
+  mainRenderer.render(mainScene, mainCamera);
+}
+animateMain();
+
+// ── Build car grid ──
+function buildGrid() {
+  const grid = document.getElementById('car-grid');
+  grid.innerHTML = '';
+  CARS.forEach((car, i) => {
+    const card = document.createElement('div');
+    card.className = 'car-card' + (i===0?' selected':'');
+    card.dataset.id = car.id;
+    card.innerHTML = `
+      <div class="loading-car" id="thumb-${car.id}">LOADING...</div>
+      <div class="car-brand">${car.name}</div>
+      <div class="car-model-lbl">${car.model}</div>
+      <div class="sel-dot"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    `;
+    card.onclick = () => setActive(car, card);
+    grid.appendChild(card);
+
+    // Tiny canvas preview per car
+    buildThumb(car);
+  });
+
+  // Load first car detail
+  loadMainCar(CARS[0]);
+  updateDetail(CARS[0]);
+}
+
+// Build small thumbnail with Three.js
+function buildThumb(car) {
+  const container = document.getElementById('thumb-'+car.id);
+  const thumbCanvas = document.createElement('canvas');
+  thumbCanvas.className = 'car-thumb-canvas';
+  thumbCanvas.width  = 200;
+  thumbCanvas.height = 80;
+
+  const r = new THREE.WebGLRenderer({ canvas:thumbCanvas, antialias:true, alpha:true });
+  r.setPixelRatio(1);
+  r.setSize(200, 80);
+  r.toneMapping = THREE.ACESFilmicToneMapping;
+  r.toneMappingExposure = 1.1;
+
+  const s = new THREE.Scene();
+  s.background = new THREE.Color(0x0a0a0d);
+  const c = new THREE.PerspectiveCamera(40, 200/80, 0.1, 100);
+  c.position.set(3, 1.2, 4);
+
+  s.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const dl = new THREE.DirectionalLight(0xffffff, 2);
+  dl.position.set(3,5,3); s.add(dl);
+  const rl = new THREE.DirectionalLight(0x4488ff, 1);
+  rl.position.set(-3,2,-3); s.add(rl);
+
+  loader.load(car.file, gltf => {
+    const model = gltf.scene;
+    const box   = new THREE.Box3().setFromObject(model);
+    const size  = new THREE.Vector3(); box.getSize(size);
+    const maxD  = Math.max(size.x, size.y, size.z);
+    const sc    = 2.5 / maxD;
+    model.scale.setScalar(sc);
+    const ctr = new THREE.Vector3(); box.getCenter(ctr);
+    model.position.set(-ctr.x*sc, -box.min.y*sc, -ctr.z*sc);
+    model.rotation.y = Math.PI + 0.3;
+    s.add(model);
+
+    container.innerHTML = '';
+    container.appendChild(thumbCanvas);
+    c.lookAt(0, 0.8, 0);
+
+    let rot = 0;
+    function thumbLoop() {
+      requestAnimationFrame(thumbLoop);
+      rot += 0.005;
+      model.rotation.y = Math.PI + 0.3 + rot;
+      r.render(s, c);
+    }
+    thumbLoop();
+  });
+}
+
+function setActive(car, card) {
+  document.querySelectorAll('.car-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  activeCar = car;
+  updateDetail(car);
+  loadMainCar(car);
+}
+
+function updateDetail(car) {
+  document.getElementById('d-brand').textContent   = car.name.toUpperCase();
+  document.getElementById('d-model').textContent   = car.model;
+  document.getElementById('s-speed').textContent   = car.topSpeed+' km/h';
+  document.getElementById('s-accel').textContent   = car.accelSec+'s 0-100';
+  document.getElementById('s-handle').textContent  = car.handle+'/100';
+  document.getElementById('s-brake').textContent   = car.brake+'/100';
+  document.getElementById('sb-speed').style.width  = car.speed+'%';
+  document.getElementById('sb-accel').style.width  = car.accel+'%';
+  document.getElementById('sb-handle').style.width = car.handle+'%';
+  document.getElementById('sb-brake').style.width  = car.brake+'%';
+  document.getElementById('s-weight').textContent  = car.weight;
+  document.getElementById('s-power').textContent   = car.power;
+  document.getElementById('s-accel2').textContent  = car.accelSec+' s';
+  document.getElementById('s-speed2').textContent  = car.topSpeed+' km/h';
+}
+
+function selectCar() {
+  State.set('car', activeCar);
+  window.location.href = 'race.html';
+}
+
+const saved = State.get('car');
+if (saved) { activeCar = CARS.find(c=>c.id===saved.id)||CARS[0]; }
+buildGrid();
+</script>
+</body>
+</html>
